@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MC 地图翻译器</title>
+<link rel="icon" href="/app.ico">
+<link rel="stylesheet" href="/style.css">
+</head>
+<body>
+<div class="bg-glow bg-glow-1"></div>
+<div class="bg-glow bg-glow-2"></div>
+
+<header class="topbar">
+  <div class="brand">
+    <img src="/app.ico" alt="" class="logo">
+    <div class="brand-text">
+      <h1>MC 地图翻译器</h1>
+      <p>整合包 · 任务书 · 语言文件 · 世界文本</p>
+    </div>
+  </div>
+  <div class="top-actions">
+    <span id="statusPill" class="pill ready"><i></i><span id="statusText">就绪</span></span>
+    <button id="undoBtn" class="btn ghost small" disabled title="恢复上一次翻译修改的文件">撤销上次</button>
+    <button id="helpBtn" class="btn ghost small">使用说明</button>
+    <button id="quitBtn" class="btn ghost small icon-only" title="退出程序">✕</button>
+  </div>
+</header>
+
+<main class="layout">
+  <aside class="sidebar">
+    <div class="sidebar-scroll">
+    <section class="card">
+      <div class="card-head">
+        <h2>翻译对象</h2>
+        <span id="pathCount" class="count">0</span>
+      </div>
+      <div id="pathList" class="path-list"></div>
+      <div id="emptyPaths" class="empty-state">
+        <div class="empty-icon">📁</div>
+        <p>添加整合包根目录、<code>saves</code> 存档文件夹，或单个地图文件夹</p>
+      </div>
+      <button id="addPathBtn" class="btn dashed">＋ 添加文件夹</button>
+      <div class="manual-row">
+        <input id="manualPath" type="text" placeholder="或粘贴路径后回车…" spellcheck="false">
+        <button id="manualAddBtn" class="btn tiny ghost">添加</button>
+      </div>
+      <p class="hint">支持：整合包根目录 / .minecraft / saves / 单个存档 / mods</p>
+    </section>
+
+    <section class="card options-card">
+      <div class="card-head"><h2>翻译范围</h2></div>
+      <label class="switch-row">
+        <span class="switch"><input type="checkbox" id="scopeQuests" checked><i></i></span>
+        <span class="switch-text"><b>任务书</b><small>FTB Quests / Better Questing / HQM</small></span>
+      </label>
+      <label class="switch-row">
+        <span class="switch"><input type="checkbox" id="scopeLang" checked><i></i></span>
+        <span class="switch-text"><b>模组语言文件</b><small>生成中文资源包，不修改 mods</small></span>
+      </label>
+      <label class="switch-row">
+        <span class="switch"><input type="checkbox" id="scopeWorld" checked><i></i></span>
+        <span class="switch-text"><b>地图世界文本</b><small>告示牌 / 成书 / NPC / 命令方块</small></span>
+      </label>
+      <label class="switch-row sub">
+        <span class="switch"><input type="checkbox" id="patchouli"><i></i></span>
+        <span class="switch-text"><b>模组指南书</b><small>Patchouli 手册，文件很多、较慢</small></span>
+      </label>
+
+      <div class="divider"></div>
+      <div class="field-grid">
+        <label class="field">
+          <span>翻译引擎</span>
+          <select id="engine">
+            <option value="bing" selected>微软必应（免费 · 推荐）</option>
+            <option value="mymemory">MyMemory（备用）</option>
+            <option value="mock">本地测试（不联网）</option>
+          </select>
+        </label>
+        <label class="field">
+          <span>目标语言</span>
+          <select id="target">
+            <option value="zh-Hans" selected>简体中文</option>
+            <option value="zh-Hant">繁體中文</option>
+          </select>
+        </label>
+        <label class="field">
+          <span>资源包版本</span>
+          <select id="packFormat">
+            <option value="auto" selected>自动检测</option>
+            <option value="3">1.12.2 (3)</option>
+            <option value="4">1.13–1.14.4 (4)</option>
+            <option value="5">1.15–1.16.1 (5)</option>
+            <option value="6">1.16.2–1.16.5 (6)</option>
+            <option value="8">1.18.x (8)</option>
+            <option value="9">1.19–1.19.2 (9)</option>
+            <option value="15">1.20–1.20.1 (15)</option>
+            <option value="18">1.20.2 (18)</option>
+            <option value="22">1.20.3–1.20.4 (22)</option>
+            <option value="32">1.20.5–1.20.6 (32)</option>
+            <option value="34">1.21–1.21.1 (34)</option>
+            <option value="42">1.21.2–1.21.3 (42)</option>
+            <option value="46">1.21.4 (46)</option>
+            <option value="55">1.21.5+ (55)</option>
+          </select>
+        </label>
+        <label class="field">
+          <span>同时请求</span>
+          <select id="concurrency">
+            <option value="1">1（最稳）</option>
+            <option value="2" selected>2（推荐）</option>
+            <option value="3">3（较快）</option>
+            <option value="4">4（容易限流）</option>
+          </select>
+        </label>
+      </div>
+
+      <label class="switch-row compact">
+        <span class="switch"><input type="checkbox" id="dryRun"><i></i></span>
+        <span class="switch-text"><b>预览模式</b><small>只翻译不写入，完成后在「译文预览」查看</small></span>
+      </label>
+      <label class="switch-row compact">
+        <span class="switch"><input type="checkbox" id="cache" checked><i></i></span>
+        <span class="switch-text"><b>翻译缓存</b><small>相同的句子不重复请求</small></span>
+      </label>
+
+      <details class="advanced">
+        <summary>高级设置</summary>
+        <div class="field-grid">
+          <label class="field">
+            <span>源语言</span>
+            <select id="source">
+              <option value="en" selected>英语 (en)</option>
+              <option value="auto">自动检测</option>
+            </select>
+          </label>
+          <label class="field">
+            <span>单批字符数</span>
+            <input id="batchChars" type="number" min="600" max="4800" step="100" value="4200">
+          </label>
+          <label class="field">
+            <span>请求间隔 (ms)</span>
+            <input id="minInterval" type="number" min="0" max="5000" step="10" value="120">
+          </label>
+          <label class="field">
+            <span>资源包名称</span>
+            <input id="packName" type="text" value="MC翻译_中文资源包" maxlength="60">
+          </label>
+        </div>
+        <div class="advanced-actions">
+          <button id="clearCacheBtn" class="btn tiny ghost">清空翻译缓存</button>
+          <span id="cacheInfo" class="muted"></span>
+        </div>
+      </details>
+    </section>
+    </div>
+
+    <div class="start-panel">
+      <button id="startBtn" class="btn primary big" disabled>
+        <span class="btn-icon">▶</span><span id="startBtnText">开始翻译</span>
+      </button>
+      <button id="stopBtn" class="btn danger big" hidden>
+        <span class="btn-icon">■</span>停止
+      </button>
+      <p class="safety">写入前自动备份，可随时点击“撤销上次”恢复</p>
+    </div>
+  </aside>
+
+  <section class="workspace">
+    <div class="summary-grid">
+      <div class="stat-card">
+        <span class="stat-label">待翻译文件</span>
+        <strong id="statFiles" class="stat-value">0</strong>
+        <small id="statFilesSub">任务书 0 · 模组 0 · 区块 0</small>
+      </div>
+      <div class="stat-card accent">
+        <span class="stat-label">本次已翻译</span>
+        <strong id="statTranslated" class="stat-value">0</strong>
+        <small>条文本</small>
+      </div>
+      <div class="stat-card">
+        <span class="stat-label">缓存命中</span>
+        <strong id="statCached" class="stat-value">0</strong>
+        <small>条（不消耗请求）</small>
+      </div>
+      <div class="stat-card">
+        <span class="stat-label">失败 / 跳过</span>
+        <strong id="statFailed" class="stat-value">0</strong>
+        <small id="statSkipped">跳过 0 条</small>
+      </div>
+    </div>
+
+    <div id="warningBanner" class="banner warn" hidden></div>
+
+    <div class="card progress-card">
+      <div class="progress-head">
+        <div>
+          <span class="progress-title" id="progressText">尚未开始</span>
+          <span class="progress-sub" id="progressCount"></span>
+        </div>
+        <span class="progress-pct" id="progressPct">0%</span>
+      </div>
+      <div class="bar"><div class="bar-fill" id="progressBar"></div></div>
+      <div class="current-file" id="currentFile">选择文件夹并点击「开始翻译」</div>
+      <div class="progress-meta">
+        <span id="engineHint">引擎：微软必应（免费）</span>
+        <span id="etaHint"></span>
+      </div>
+    </div>
+
+    <div class="card console-card">
+      <div class="tabs">
+        <button class="tab active" data-tab="log">运行日志</button>
+        <button class="tab" data-tab="report">翻译报告</button>
+        <button class="tab" data-tab="preview">译文预览</button>
+        <div class="spacer"></div>
+        <button id="clearLogBtn" class="btn tiny ghost">清空日志</button>
+      </div>
+      <div id="logPanel" class="panel">
+        <div id="logBox" class="log-box">
+          <div class="log-empty">日志会显示在这里。所有翻译都会先备份，出问题可一键撤销。</div>
+        </div>
+      </div>
+      <div id="reportPanel" class="panel" hidden>
+        <div class="report-empty">完成一次翻译后，这里会显示统计、资源包位置和错误列表。</div>
+      </div>
+      <div id="previewPanel" class="panel" hidden>
+        <div class="preview-toolbar">
+          <input id="previewSearch" type="text" placeholder="搜索原文 / 译文 / 文件…" spellcheck="false">
+          <span id="previewCount" class="muted"></span>
+          <button id="openPreviewFileBtn" class="btn tiny ghost" hidden>打开完整预览文件</button>
+        </div>
+        <div id="previewList" class="preview-list">
+          <div class="report-empty">预览模式下完成一次翻译后，这里会显示原文与译文对照；普通翻译完成后也会保留前 300 条样例。</div>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<dialog id="helpDialog" class="dialog">
+  <div class="dialog-head">
+    <h3>使用说明</h3>
+    <button class="btn tiny ghost" id="closeHelp">关闭</button>
+  </div>
+  <div class="dialog-body">
+    <h4>1. 选择翻译对象</h4>
+    <p>可以添加：整合包根目录（包含 <code>mods</code>、<code>config</code>、<code>saves</code>）、<code>.minecraft</code> 文件夹、<code>saves</code> 存档目录、单个世界文件夹，或 <code>mods</code> 文件夹。</p>
+    <h4>2. 会自动翻译什么</h4>
+    <ul>
+      <li><b>任务书</b>：FTB Quests 的 SNBT/语言文件、Better Questing 的 JSON、旧版 NBT。</li>
+      <li><b>模组语言文件</b>：读取 mods 里的 <code>en_us.json / en_us.lang</code>，在 <code>resourcepacks</code> 生成中文资源包，<b>不修改 jar</b>。</li>
+      <li><b>世界文本</b>：告示牌、成书、文本展示实体、NPC 名字、计分板、CustomNPCs 对话；命令方块只翻译 JSON 显示文本，不动命令语法。</li>
+    </ul>
+    <h4>3. 在游戏里生效</h4>
+    <p>资源包会被放到整合包的 <code>resourcepacks/</code>，进入游戏后在「选项 → 资源包」启用；任务书语言文件通常自动生效。游戏语言请设为中文。</p>
+    <h4>4. 安全与撤销</h4>
+    <p>所有被修改的文件都会备份到程序目录的 <code>backup</code> 文件夹。点「撤销上次」可恢复最近一次翻译；保留最近 10 次记录。建议翻译前关闭游戏。</p>
+    <h4>5. 关于机器翻译</h4>
+    <p>默认使用微软必应的免费公开接口，无需 API Key；长文本会切分并保留 <code>%s</code>、<code>§a</code>、<code>{0}</code> 等占位符。翻译质量取决于引擎，专有名词可能不准确，可在生成的资源包里手动校对。</p>
+    <p class="muted">提示：第一次翻译整包可能有几万条文本，需要较长时间；再次运行会命中缓存，速度会快很多。</p>
+  </div>
+</dialog>
+
+<div id="toastWrap" class="toast-wrap"></div>
+
+<script src="/app.js"></script>
+</body>
+</html>

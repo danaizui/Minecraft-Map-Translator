@@ -1,0 +1,9 @@
+# 保持文件原始编码与换行，避免 VBS（UTF-16 LE）和 CMD（GBK）被转换破坏
+* -text
+
+*.exe binary
+*.ico binary
+*.png binary
+*.jpg binary
+*.jar binary
+*.zip binary

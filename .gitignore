@@ -1,0 +1,17 @@
+# 运行时数据（每次运行自动生成，不要提交）
+data/
+backup/
+logs/
+test/tmp/
+
+# 依赖 / 构建产物
+node_modules/
+*.log
+
+# 系统与编辑器
+Thumbs.db
+desktop.ini
+.DS_Store
+.vscode/
+.idea/
+*.lnk
