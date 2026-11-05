@@ -8,7 +8,7 @@ const { execFile, spawn } = require('child_process');
 const util = require('./lib/util');
 const core = require('./lib/core');
 
-const VERSION = '1.1.0';
+const VERSION = '1.2.0';
 const HOST = '127.0.0.1';
 const BASE_PORT = 17321;
 const PUBLIC_DIR = path.join(__dirname, 'public');

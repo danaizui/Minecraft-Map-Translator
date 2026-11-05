@@ -14,7 +14,7 @@ const core = require('./lib/core');
 const util = require('./lib/util');
 
 function usage() {
-  console.log(`MC 地图翻译器 CLI v1.1
+  console.log(`MC 地图翻译器 CLI v1.2
 
 用法:
   node app/cli.js <整合包/存档路径...> [选项]

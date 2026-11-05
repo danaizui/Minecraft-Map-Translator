@@ -23,14 +23,29 @@
 
 ## 下载与运行
 
-### 方式一：Git clone
+### 方式一：轻量化安装程序（推荐，约 0.3 MB）
+
+[**下载 MC-Map-Translator-Lite-Setup.exe**](https://github.com/danaizui/Minecraft-Map-Translator/raw/main/installer/MC-Map-Translator-Lite-Setup.exe)
+
+双击运行，按提示安装即可。安装程序本身只有约 0.3 MB，首次安装会自动下载约 35 MB 的 Node.js 运行时。
+
+- 默认安装到 `%LOCALAPPDATA%\Programs\MC地图翻译器`
+- 自动创建桌面和「开始」菜单快捷方式
+- 可在「设置 → 应用 → 已安装的应用」中卸载
+- 安装包未签名，SmartScreen 提示时选择「更多信息 → 仍要运行」
+
+![安装程序](docs/installer-gui.png)
+
+> 构建方法与静默安装参数见 [`installer/README.md`](installer/README.md)。
+
+### 方式二：Git clone
 
 ```bash
 git clone https://github.com/danaizui/Minecraft-Map-Translator.git
 cd Minecraft-Map-Translator
 ```
 
-### 方式二：下载 ZIP
+### 方式三：下载 ZIP
 
 在仓库页面点击 **Code → Download ZIP**，解压到任意目录（路径尽量不要包含特殊符号）。
 
@@ -118,6 +133,7 @@ runtime\node.exe app\cli.js --help
 │  ├─ lib\             NBT / MCA / SNBT / ZIP / 翻译 / 任务书 / 世界文本
 │  └─ public\          前端界面
 ├─ runtime\node.exe    内置 Node.js 运行时
+├─ installer\          轻量化安装程序（源码 + Setup.exe）
 ├─ test\               自动化测试
 ├─ docs\               README 截图
 ├─ 启动.vbs            无窗口启动（快捷方式指向它）

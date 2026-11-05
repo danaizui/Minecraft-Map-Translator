@@ -1,6 +1,6 @@
 {
   "name": "mc-map-translator",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "Minecraft Java 版整合包 / 地图 / 任务书批量汉化工具（Windows 图形界面）",
   "main": "app/server.js",
   "scripts": {
