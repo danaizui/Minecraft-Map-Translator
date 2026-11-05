@@ -107,7 +107,6 @@ function Download-Node([string]$Target) {
   if ($NodeZip) { $sources = @($NodeZip) } else { $sources = $NodeUrls }
   $tmp = Join-Path $env:TEMP ('mct-node-' + [Guid]::NewGuid().ToString('N') + '.zip')
   $lastError = $null
-  $script:lastDlPct = -1
 
   foreach ($src in $sources) {
     try {
@@ -116,33 +115,53 @@ function Download-Node([string]$Target) {
       Set-Progress 0
       if ($isLocal) {
         Copy-Item -LiteralPath $src -Destination $tmp -Force
-      } else {
-        $script:dlPct = 0
-        $script:dlDone = $false
-        $script:dlError = $null
-        $wc = New-Object System.Net.WebClient
-        try { $wc.Headers.Add('User-Agent', 'MCT-Installer/' + $AppVersion) } catch { }
-        $wc.add_DownloadProgressChanged({ param($s, $e) $script:dlPct = $e.ProgressPercentage })
-        $wc.add_DownloadFileCompleted({ param($s, $e) $script:dlDone = $true; $script:dlError = $e.Error })
-        $wc.DownloadFileAsync([Uri]$src, $tmp)
-        $deadline = (Get-Date).AddMinutes(10)
-        while (-not $script:dlDone) {
-          if ($script:Form) { [System.Windows.Forms.Application]::DoEvents() }
-          if ($script:dlPct -gt 0 -and $script:dlPct -ne $script:lastDlPct) {
-            Set-Progress ([int]($script:dlPct * 0.8))
-            if ($script:dlPct -eq 100 -or ($script:dlPct % 5) -eq 0) {
-              Write-Status ('正在下载运行环境… ' + $script:dlPct + '%')
-            }
-            $script:lastDlPct = $script:dlPct
+        Set-Progress 80
+      } elseif ($script:Form) {
+        # 图形界面：后台任务下载，主线程刷新进度，避免窗口卡死
+        $job = Start-Job -ScriptBlock {
+          param($Url, $Path)
+          $wc = New-Object System.Net.WebClient
+          try { $wc.Headers.Add('User-Agent', 'MCT-Installer/1.2.0') } catch { }
+          try {
+            $wc.DownloadFile([Uri]$Url, $Path)
+          } finally {
+            $wc.Dispose()
           }
+        } -ArgumentList $src, $tmp
+        $deadline = (Get-Date).AddMinutes(10)
+        $approxTotal = 35MB
+        while ($job.State -eq 'Running') {
           if ((Get-Date) -gt $deadline) {
-            try { $wc.CancelAsync() } catch { }
+            Stop-Job -Job $job -ErrorAction SilentlyContinue
+            Remove-Job -Job $job -Force -ErrorAction SilentlyContinue
             throw '下载超时'
           }
-          Start-Sleep -Milliseconds 100
+          $len = 0
+          if (Test-Path -LiteralPath $tmp) {
+            try { $len = (Get-Item -LiteralPath $tmp).Length } catch { }
+          }
+          Set-Progress ([int]([Math]::Min(80, ($len / $approxTotal) * 80)))
+          Write-Status ('正在下载运行环境… ' + ('{0:N1}' -f ($len / 1MB)) + ' MB / 约 35 MB')
+          [System.Windows.Forms.Application]::DoEvents()
+          Start-Sleep -Milliseconds 250
         }
-        $wc.Dispose()
-        if ($script:dlError) { throw $script:dlError }
+        $jobErrors = @()
+        Receive-Job -Job $job -ErrorAction SilentlyContinue -ErrorVariable jobErrors | Out-Null
+        $failed = ($job.State -eq 'Failed' -or $jobErrors.Count -gt 0)
+        $jobMessage = if ($jobErrors.Count -gt 0) { $jobErrors[0].ToString() } else { '下载失败' }
+        Remove-Job -Job $job -Force -ErrorAction SilentlyContinue
+        if ($failed) { throw $jobMessage }
+        Set-Progress 80
+      } else {
+        # 静默模式：直接同步下载
+        $wc = New-Object System.Net.WebClient
+        try { $wc.Headers.Add('User-Agent', 'MCT-Installer/' + $AppVersion) } catch { }
+        try {
+          $wc.DownloadFile([Uri]$src, $tmp)
+        } finally {
+          $wc.Dispose()
+        }
+        Set-Progress 80
       }
 
       Write-Status '正在解压运行环境…'
