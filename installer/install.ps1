@@ -9,6 +9,9 @@ param(
 )
 
 $ErrorActionPreference = 'Stop'
+try {
+  [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+} catch { }
 $AppVersion = '1.2.0'
 $NodeVersion = 'v22.14.0'
 $NodeZipName = "node-$NodeVersion-win-x64.zip"
